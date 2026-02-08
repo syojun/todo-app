@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase接続テスト</title>
+</head>
+<body>
+    <h1>Supabase接続テスト</h1>
+    <button onclick="testConnection()">接続テスト</button>
+    <pre id="result"></pre>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        const supabaseUrl = 'https://ttuoomryfewtmotaeigf.supabase.co';
+        const supabaseAnonKey = 'sb_publishable_cZy-mEFHYmbfiw3bawGA9w_N6ebKHyn';
+
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+        window.testConnection = async function() {
+            const resultEl = document.getElementById('result');
+            resultEl.textContent = 'テスト中...';
+
+            try {
+                // テーブルが存在するか確認
+                const { data, error } = await supabase
+                    .from('todos')
+                    .select('id')
+                    .limit(1);
+
+                if (error) {
+                    resultEl.textContent = `エラー発生:\n\nコード: ${error.code || '不明'}\nメッセージ: ${error.message}\n詳細: ${error.details || 'なし'}\nヒント: ${error.hint || 'なし'}\n\n完全なエラーオブジェクト:\n${JSON.stringify(error, null, 2)}`;
+                } else {
+                    resultEl.textContent = `接続成功！\n\nデータ: ${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (err) {
+                resultEl.textContent = `予期しないエラー:\n\n${err.message}\n\n${err.stack}`;
+            }
+        };
+    </script>
+</body>
+</html>
