@@ -87,12 +87,11 @@ export default function TodoItem({ todo, onEdit, onDelete, onToggleComplete }: T
             )}
           </div>
 
-          <div className="flex gap-2 flex-shrink-0">
-            {/* Googleカレンダーボタン - 常に表示 */}
+          <div className="flex gap-2 flex-shrink-0 items-center">
+            {/* Googleカレンダーボタン - 常に表示（最初に配置） */}
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
+              type="button"
+              onClick={() => {
                 if (todo.deadline) {
                   addTodoToGoogleCalendar(todo);
                 } else {
@@ -100,15 +99,13 @@ export default function TodoItem({ todo, onEdit, onDelete, onToggleComplete }: T
                   onEdit(todo);
                 }
               }}
-              className={`px-4 py-2 rounded-lg transition-colors border-2 text-sm font-bold shadow-md whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold border ${
                 todo.deadline 
                   ? 'text-white bg-green-600 hover:bg-green-700 border-green-700' 
-                  : 'text-gray-700 bg-gray-200 hover:bg-gray-300 border-gray-400'
+                  : 'text-gray-700 bg-gray-100 hover:bg-gray-200 border-gray-300'
               }`}
-              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-              title={todo.deadline ? 'Googleカレンダーに追加' : '期限日を設定してGoogleカレンダーに追加'}
             >
-              📅 カレンダー
+              📅
             </button>
             <button
               onClick={() => onEdit(todo)}
