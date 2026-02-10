@@ -102,15 +102,21 @@ export default function TodoItem({ todo, onEdit, onDelete, onToggleComplete }: T
                   onEdit(todo);
                 }
               }}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold border flex items-center gap-1 whitespace-nowrap ${
+              className={`px-4 py-2 rounded-md text-sm font-bold border-2 flex items-center justify-center gap-2 whitespace-nowrap ${
                 todo.deadline 
-                  ? 'text-white bg-green-600 hover:bg-green-700 border-green-700' 
-                  : 'text-gray-700 bg-gray-100 hover:bg-gray-200 border-gray-300'
+                  ? 'text-white bg-green-600 hover:bg-green-700 border-green-700 shadow-md' 
+                  : 'text-gray-800 bg-gray-200 hover:bg-gray-300 border-gray-400 shadow-sm'
               }`}
-              style={{ minWidth: '80px', display: 'flex' }}
+              style={{ 
+                minWidth: '120px', 
+                display: 'inline-flex',
+                visibility: 'visible',
+                opacity: 1,
+                zIndex: 10
+              }}
               title="Googleカレンダーに追加"
             >
-              <span>📅</span>
+              <span style={{ fontSize: '16px' }}>📅</span>
               <span>カレンダー</span>
             </button>
             <button
