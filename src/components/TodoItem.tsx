@@ -1,5 +1,6 @@
-import { Check, Clock, Edit2, Trash2 } from 'lucide-react';
+import { Check, Clock, Edit2, Trash2, Calendar } from 'lucide-react';
 import type { Todo } from '../types/database';
+import { addTodoToGoogleCalendar } from '../lib/googleCalendar';
 
 interface TodoItemProps {
   todo: Todo;
@@ -9,6 +10,15 @@ interface TodoItemProps {
 }
 
 export default function TodoItem({ todo, onEdit, onDelete, onToggleComplete }: TodoItemProps) {
+  // デバッグ: 期限日の値を確認
+  console.log('TodoItem render:', {
+    id: todo.id,
+    title: todo.title,
+    deadline: todo.deadline,
+    deadlineType: typeof todo.deadline,
+    hasDeadline: !!todo.deadline,
+  });
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return null;
     const date = new Date(dateString);
@@ -78,6 +88,26 @@ export default function TodoItem({ todo, onEdit, onDelete, onToggleComplete }: T
           </div>
 
           <div className="flex gap-2 flex-shrink-0">
+            {/* Googleカレンダーボタン - 常に表示（目立つようにスタイルを変更） */}
+            <button
+              onClick={() => {
+                if (todo.deadline) {
+                  addTodoToGoogleCalendar(todo);
+                } else {
+                  alert('このTODOには期限日が設定されていません。\n\n編集ボタンから期限日を設定してから、再度お試しください。');
+                  onEdit(todo);
+                }
+              }}
+              className={`px-3 py-2 rounded-lg transition-colors border-2 flex items-center gap-2 text-sm font-semibold shadow-sm ${
+                todo.deadline 
+                  ? 'text-white bg-green-600 hover:bg-green-700 border-green-700' 
+                  : 'text-gray-600 bg-gray-100 hover:bg-gray-200 border-gray-300'
+              }`}
+              title={todo.deadline ? 'Googleカレンダーに追加' : '期限日を設定してGoogleカレンダーに追加'}
+            >
+              <Calendar size={18} />
+              <span>カレンダー</span>
+            </button>
             <button
               onClick={() => onEdit(todo)}
               className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
