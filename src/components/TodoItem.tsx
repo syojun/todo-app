@@ -109,15 +109,15 @@ export default function TodoItem({ todo, onEdit, onDelete, onToggleComplete }: T
               }`}
               style={{ 
                 minWidth: '120px', 
-                display: 'inline-flex',
-                visibility: 'visible',
-                opacity: 1,
+                display: 'flex !important',
+                visibility: 'visible !important',
+                opacity: '1 !important',
                 zIndex: 10
               }}
               title="Googleカレンダーに追加"
             >
-              <span style={{ fontSize: '16px' }}>📅</span>
-              <span>カレンダー</span>
+              <span style={{ fontSize: '16px', display: 'inline-block' }}>📅</span>
+              <span style={{ display: 'inline-block' }}>カレンダー</span>
             </button>
             <button
               onClick={() => onEdit(todo)}
