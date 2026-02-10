@@ -1,4 +1,4 @@
-import { Check, Clock, Edit2, Trash2, Calendar } from 'lucide-react';
+import { Check, Clock, Edit2, Trash2, Calendar as CalendarIcon } from 'lucide-react';
 import type { Todo } from '../types/database';
 import { addTodoToGoogleCalendar } from '../lib/googleCalendar';
 
@@ -88,7 +88,7 @@ export default function TodoItem({ todo, onEdit, onDelete, onToggleComplete }: T
           </div>
 
           <div className="flex gap-2 flex-shrink-0">
-            {/* Googleカレンダーボタン - 常に表示（目立つようにスタイルを変更） */}
+            {/* Googleカレンダーボタン - 常に表示 */}
             <button
               onClick={() => {
                 if (todo.deadline) {
@@ -98,14 +98,14 @@ export default function TodoItem({ todo, onEdit, onDelete, onToggleComplete }: T
                   onEdit(todo);
                 }
               }}
-              className={`px-3 py-2 rounded-lg transition-colors border-2 flex items-center gap-2 text-sm font-semibold shadow-sm ${
+              className={`px-3 py-2 rounded-lg transition-colors border-2 flex items-center justify-center gap-2 text-sm font-semibold shadow-sm min-w-[100px] ${
                 todo.deadline 
                   ? 'text-white bg-green-600 hover:bg-green-700 border-green-700' 
                   : 'text-gray-600 bg-gray-100 hover:bg-gray-200 border-gray-300'
               }`}
               title={todo.deadline ? 'Googleカレンダーに追加' : '期限日を設定してGoogleカレンダーに追加'}
             >
-              <Calendar size={18} />
+              <CalendarIcon size={16} className="flex-shrink-0" />
               <span>カレンダー</span>
             </button>
             <button
