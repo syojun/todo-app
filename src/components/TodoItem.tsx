@@ -91,7 +91,10 @@ export default function TodoItem({ todo, onEdit, onDelete, onToggleComplete }: T
             {/* Googleカレンダーボタン - 常に表示（最初に配置） */}
             <button
               type="button"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Calendar button clicked for todo:', todo.id, 'deadline:', todo.deadline);
                 if (todo.deadline) {
                   addTodoToGoogleCalendar(todo);
                 } else {
@@ -99,13 +102,16 @@ export default function TodoItem({ todo, onEdit, onDelete, onToggleComplete }: T
                   onEdit(todo);
                 }
               }}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold border ${
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold border flex items-center gap-1 whitespace-nowrap ${
                 todo.deadline 
                   ? 'text-white bg-green-600 hover:bg-green-700 border-green-700' 
                   : 'text-gray-700 bg-gray-100 hover:bg-gray-200 border-gray-300'
               }`}
+              style={{ minWidth: '80px', display: 'flex' }}
+              title="Googleカレンダーに追加"
             >
-              📅
+              <span>📅</span>
+              <span>カレンダー</span>
             </button>
             <button
               onClick={() => onEdit(todo)}
