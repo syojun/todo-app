@@ -21,6 +21,9 @@ export function addTodoToGoogleCalendar(todo: { title: string; content: string; 
       return;
     }
     
+    console.log('Original deadline:', todo.deadline);
+    console.log('Parsed deadline date:', deadlineDate);
+    
     // Google Calendar URL形式に変換
     // 開始時刻: 期限日の1時間前（デフォルト）
     const startDate = new Date(deadlineDate);
@@ -32,17 +35,25 @@ export function addTodoToGoogleCalendar(todo: { title: string; content: string; 
     // ISO 8601形式に変換（YYYYMMDDTHHmmssZ）
     // Google CalendarはUTC形式を要求する
     const formatDate = (date: Date): string => {
-      const year = date.getUTCFullYear();
-      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-      const day = String(date.getUTCDate()).padStart(2, '0');
-      const hours = String(date.getUTCHours()).padStart(2, '0');
-      const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-      const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-      return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
+      // UTCに変換してからフォーマット
+      const utcYear = date.getUTCFullYear();
+      const utcMonth = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const utcDay = String(date.getUTCDate()).padStart(2, '0');
+      const utcHours = String(date.getUTCHours()).padStart(2, '0');
+      const utcMinutes = String(date.getUTCMinutes()).padStart(2, '0');
+      const utcSeconds = String(date.getUTCSeconds()).padStart(2, '0');
+      
+      return `${utcYear}${utcMonth}${utcDay}T${utcHours}${utcMinutes}${utcSeconds}Z`;
     };
 
     const startDateStr = formatDate(startDate);
     const endDateStr = formatDate(endDate);
+    
+    console.log('Original deadline:', todo.deadline);
+    console.log('Start date (local):', startDate.toLocaleString('ja-JP'));
+    console.log('End date (local):', endDate.toLocaleString('ja-JP'));
+    console.log('Start date (UTC):', startDateStr);
+    console.log('End date (UTC):', endDateStr);
 
     // イベントの詳細をURLエンコード
     const title = encodeURIComponent(todo.title);
@@ -51,6 +62,8 @@ export function addTodoToGoogleCalendar(todo: { title: string; content: string; 
 
     // Google Calendar URLを作成
     const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startDateStr}/${endDateStr}&details=${details}&location=${location}`;
+    
+    console.log('Google Calendar URL:', googleCalendarUrl);
 
     // 新しいウィンドウでGoogleカレンダーを開く
     const newWindow = window.open(googleCalendarUrl, '_blank');
