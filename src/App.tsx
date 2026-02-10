@@ -4,6 +4,7 @@ import TodoForm from './components/TodoForm';
 import TodoList, { FilterButtons } from './components/TodoList';
 import { supabase } from './lib/supabase';
 import type { Todo } from './types/database';
+import { addTodoToGoogleCalendar } from './lib/googleCalendar';
 
 function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -134,6 +135,18 @@ function App() {
     console.log('Success! Inserted data:', insertedData);
     console.groupEnd();
     await fetchTodos();
+    
+    // 期限日がある場合は自動的にGoogleカレンダーに追加
+    if (data.deadline && insertedData && insertedData[0]) {
+      // 少し遅延を入れてからカレンダーを開く（TODO保存の確認後）
+      setTimeout(() => {
+        addTodoToGoogleCalendar({
+          title: data.title,
+          content: data.content,
+          deadline: data.deadline,
+        });
+      }, 500);
+    }
   };
 
   const handleUpdateTodo = async (data: { title: string; content: string; deadline: string | null }) => {
