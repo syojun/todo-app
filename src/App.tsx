@@ -4,7 +4,8 @@ import TodoForm from './components/TodoForm';
 import TodoList, { FilterButtons } from './components/TodoList';
 import { supabase } from './lib/supabase';
 import type { Todo } from './types/database';
-import { addTodoToGoogleCalendar } from './lib/googleCalendar';
+import { addTodoToGoogleCalendar, addTodoToGoogleCalendarAPI } from './lib/googleCalendar';
+import { initializeGoogleAuth, getStoredAccessToken, clearAccessToken, validateAccessToken } from './lib/googleAuth';
 
 function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -12,6 +13,49 @@ function App() {
   const [editingTodo, setEditingTodo] = useState<Todo | undefined>(undefined);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [isLoading, setIsLoading] = useState(true);
+  const [isGoogleAuthenticated, setIsGoogleAuthenticated] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+
+  // Google認証状態を確認
+  useEffect(() => {
+    const checkGoogleAuth = async () => {
+      const token = getStoredAccessToken();
+      if (token) {
+        const isValid = await validateAccessToken(token);
+        if (isValid) {
+          setIsGoogleAuthenticated(true);
+        } else {
+          clearAccessToken();
+          setIsGoogleAuthenticated(false);
+        }
+      } else {
+        setIsGoogleAuthenticated(false);
+      }
+    };
+    checkGoogleAuth();
+  }, []);
+
+  // Google認証を開始
+  const handleGoogleAuth = async () => {
+    setIsAuthenticating(true);
+    try {
+      await initializeGoogleAuth();
+      setIsGoogleAuthenticated(true);
+      alert('Googleカレンダーへの連携が完了しました！');
+    } catch (error) {
+      console.error('Google認証エラー:', error);
+      alert('Google認証に失敗しました。もう一度お試しください。');
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
+  // Google認証を解除
+  const handleGoogleLogout = () => {
+    clearAccessToken();
+    setIsGoogleAuthenticated(false);
+    alert('Googleカレンダーへの連携を解除しました。');
+  };
 
   const fetchTodos = async () => {
     setIsLoading(true);
@@ -138,14 +182,37 @@ function App() {
     
     // 期限日がある場合は自動的にGoogleカレンダーに追加
     if (data.deadline && insertedData && insertedData[0]) {
-      // 少し遅延を入れてからカレンダーを開く（TODO保存の確認後）
-      setTimeout(() => {
-        addTodoToGoogleCalendar({
-          title: data.title,
-          content: data.content,
-          deadline: data.deadline,
-        });
-      }, 500);
+      const accessToken = getStoredAccessToken();
+      
+      if (accessToken && isGoogleAuthenticated) {
+        // OAuth認証済みの場合は自動的にイベントを作成
+        try {
+          await addTodoToGoogleCalendarAPI({
+            title: data.title,
+            content: data.content,
+            deadline: data.deadline,
+          }, accessToken);
+        } catch (error) {
+          console.error('Google Calendar API error:', error);
+          // APIエラーの場合は、URLスキームでフォールバック
+          setTimeout(() => {
+            addTodoToGoogleCalendar({
+              title: data.title,
+              content: data.content,
+              deadline: data.deadline,
+            });
+          }, 500);
+        }
+      } else {
+        // 認証されていない場合は、URLスキームでカレンダーを開く
+        setTimeout(() => {
+          addTodoToGoogleCalendar({
+            title: data.title,
+            content: data.content,
+            deadline: data.deadline,
+          });
+        }, 500);
+      }
     }
   };
 
@@ -224,8 +291,33 @@ function App() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">TODOリスト</h1>
-          <p className="text-gray-600">タスクを管理して、効率的に作業を進めましょう</p>
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-800 mb-2">TODOリスト</h1>
+              <p className="text-gray-600">タスクを管理して、効率的に作業を進めましょう</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              {isGoogleAuthenticated ? (
+                <button
+                  onClick={handleGoogleLogout}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                >
+                  Google連携解除
+                </button>
+              ) : (
+                <button
+                  onClick={handleGoogleAuth}
+                  disabled={isAuthenticating}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isAuthenticating ? '認証中...' : 'Googleカレンダー連携'}
+                </button>
+              )}
+              {isGoogleAuthenticated && (
+                <span className="text-xs text-green-600 text-center">✓ 自動追加有効</span>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
