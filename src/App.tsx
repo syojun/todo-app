@@ -18,6 +18,10 @@ function App() {
 
   // Google認証状態を確認
   useEffect(() => {
+    // デバッグ: 環境変数を確認
+    console.log('Google Client ID configured:', !!import.meta.env.VITE_GOOGLE_CLIENT_ID);
+    console.log('Google Client ID value:', import.meta.env.VITE_GOOGLE_CLIENT_ID ? `${import.meta.env.VITE_GOOGLE_CLIENT_ID.substring(0, 20)}...` : 'not set');
+    
     const checkGoogleAuth = async () => {
       const token = getStoredAccessToken();
       if (token) {
@@ -297,24 +301,28 @@ function App() {
               <p className="text-gray-600">タスクを管理して、効率的に作業を進めましょう</p>
             </div>
             <div className="flex flex-col gap-2">
-              {isGoogleAuthenticated ? (
-                <button
-                  onClick={handleGoogleLogout}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                >
-                  Google連携解除
-                </button>
-              ) : (
-                <button
-                  onClick={handleGoogleAuth}
-                  disabled={isAuthenticating}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isAuthenticating ? '認証中...' : 'Googleカレンダー連携'}
-                </button>
-              )}
-              {isGoogleAuthenticated && (
-                <span className="text-xs text-green-600 text-center">✓ 自動追加有効</span>
+              {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+                <>
+                  {isGoogleAuthenticated ? (
+                    <button
+                      onClick={handleGoogleLogout}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                    >
+                      Google連携解除
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleGoogleAuth}
+                      disabled={isAuthenticating}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isAuthenticating ? '認証中...' : 'Googleカレンダー連携'}
+                    </button>
+                  )}
+                  {isGoogleAuthenticated && (
+                    <span className="text-xs text-green-600 text-center">✓ 自動追加有効</span>
+                  )}
+                </>
               )}
             </div>
           </div>
