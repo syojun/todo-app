@@ -153,7 +153,7 @@ function App() {
     fetchTodos();
   }, []);
 
-  const handleAddTodo = async (data: { title: string; content: string; deadline: string | null }) => {
+  const handleAddTodo = async (data: { title: string; content: string; deadline: string | null; important: boolean }) => {
     console.group('=== Adding todo ===');
     console.log('Data:', data);
     
@@ -161,6 +161,7 @@ function App() {
       title: data.title,
       content: data.content,
       deadline: data.deadline,
+      important: data.important,
     }).select();
 
     if (error) {
@@ -220,7 +221,7 @@ function App() {
     }
   };
 
-  const handleUpdateTodo = async (data: { title: string; content: string; deadline: string | null }) => {
+  const handleUpdateTodo = async (data: { title: string; content: string; deadline: string | null; important: boolean }) => {
     if (!editingTodo) return;
 
     const { error } = await supabase
@@ -229,6 +230,7 @@ function App() {
         title: data.title,
         content: data.content,
         deadline: data.deadline,
+        important: data.important,
         updated_at: new Date().toISOString(),
       })
       .eq('id', editingTodo.id);

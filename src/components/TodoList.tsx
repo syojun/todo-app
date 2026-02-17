@@ -11,11 +11,19 @@ interface TodoListProps {
 }
 
 export default function TodoList({ todos, filter, onEdit, onDelete, onToggleComplete }: TodoListProps) {
-  const filteredTodos = todos.filter((todo) => {
-    if (filter === 'active') return !todo.completed;
-    if (filter === 'completed') return todo.completed;
-    return true;
-  });
+  const filteredTodos = todos
+    .filter((todo) => {
+      if (filter === 'active') return !todo.completed;
+      if (filter === 'completed') return todo.completed;
+      return true;
+    })
+    .sort((a, b) => {
+      // 重要度でソート（重要なものから上に）
+      if (a.important && !b.important) return -1;
+      if (!a.important && b.important) return 1;
+      // 重要度が同じ場合は作成日時でソート（新しいものから上に）
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
   if (filteredTodos.length === 0) {
     return (

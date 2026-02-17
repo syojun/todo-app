@@ -4,7 +4,7 @@ import type { Todo } from '../types/database';
 
 interface TodoFormProps {
   todo?: Todo;
-  onSubmit: (data: { title: string; content: string; deadline: string | null }) => Promise<void>;
+  onSubmit: (data: { title: string; content: string; deadline: string | null; important: boolean }) => Promise<void>;
   onClose: () => void;
 }
 
@@ -12,12 +12,14 @@ export default function TodoForm({ todo, onSubmit, onClose }: TodoFormProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [important, setImportant] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (todo) {
       setTitle(todo.title);
       setContent(todo.content);
+      setImportant(todo.important || false);
       if (todo.deadline) {
         const date = new Date(todo.deadline);
         const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
@@ -34,11 +36,13 @@ export default function TodoForm({ todo, onSubmit, onClose }: TodoFormProps) {
         title,
         content,
         deadline: deadline ? new Date(deadline).toISOString() : null,
+        important,
       });
       if (!todo) {
         setTitle('');
         setContent('');
         setDeadline('');
+        setImportant(false);
       }
       onClose();
     } catch (error: any) {
@@ -119,6 +123,18 @@ export default function TodoForm({ todo, onSubmit, onClose }: TodoFormProps) {
               onChange={(e) => setDeadline(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={important}
+                onChange={(e) => setImportant(e.target.checked)}
+                className="w-5 h-5 text-yellow-600 border-gray-300 rounded focus:ring-2 focus:ring-yellow-500"
+              />
+              <span className="text-sm font-medium text-gray-700">重要</span>
+            </label>
           </div>
 
           <div className="flex gap-3 pt-4">

@@ -8,6 +8,7 @@ export type Database = {
           content: string;
           deadline: string | null;
           completed: boolean;
+          important: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -17,6 +18,7 @@ export type Database = {
           content?: string;
           deadline?: string | null;
           completed?: boolean;
+          important?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -26,6 +28,7 @@ export type Database = {
           content?: string;
           deadline?: string | null;
           completed?: boolean;
+          important?: boolean;
           created_at?: string;
           updated_at?: string;
         };

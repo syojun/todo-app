@@ -1,4 +1,4 @@
-import { Check, Clock, Edit2, Trash2 } from 'lucide-react';
+import { Check, Clock, Edit2, Trash2, Star } from 'lucide-react';
 import type { Todo } from '../types/database';
 import { addTodoToGoogleCalendar } from '../lib/googleCalendar';
 
@@ -56,13 +56,24 @@ export default function TodoItem({ todo, onEdit, onDelete, onToggleComplete }: T
           </button>
 
           <div className="flex-1 min-w-0">
-            <h3
-              className={`text-lg font-medium ${
-                todo.completed ? 'line-through text-gray-500' : 'text-gray-900'
-              }`}
-            >
-              {todo.title}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3
+                className={`text-lg font-medium ${
+                  todo.completed ? 'line-through text-gray-500' : 'text-gray-900'
+                }`}
+              >
+                {todo.title}
+              </h3>
+              {todo.important && (
+                <span
+                  className="flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold"
+                  title="重要"
+                >
+                  <Star size={12} className="fill-yellow-600 text-yellow-600" />
+                  重要
+                </span>
+              )}
+            </div>
 
             {todo.content && (
               <p className={`mt-1 text-sm ${todo.completed ? 'text-gray-400' : 'text-gray-600'}`}>
