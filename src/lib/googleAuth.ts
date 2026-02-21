@@ -35,23 +35,64 @@ function loadGoogleIdentityServices(): Promise<void> {
     }
 
     // 既にスクリプトタグが存在する場合は読み込みを待つ
-    const existingScript = document.querySelector('script[src*="accounts.google.com/gsi/client"]');
+    const existingScript = document.querySelector('script[src*="accounts.google.com/gsi/client"]') as HTMLScriptElement | null;
     if (existingScript) {
       console.log('Google Identity Servicesスクリプトタグが見つかりました。読み込みを待ちます...');
-      let attempts = 0;
-      const maxAttempts = 150; // 15秒
+      console.log('スクリプトの状態:', {
+        readyState: existingScript.readyState,
+        async: existingScript.async,
+        defer: existingScript.defer,
+        complete: document.readyState
+      });
       
-      const checkInterval = setInterval(() => {
-        attempts++;
-        if (window.google?.accounts?.oauth2) {
-          clearInterval(checkInterval);
-          console.log('✅ Google Identity Servicesライブラリが読み込まれました');
-          resolve();
-        } else if (attempts >= maxAttempts) {
-          clearInterval(checkInterval);
-          reject(new Error('Google Identity Servicesライブラリの読み込みがタイムアウトしました'));
-        }
-      }, 100);
+      // スクリプトが既に読み込まれている可能性をチェック
+      if (existingScript.readyState === 'complete' || existingScript.readyState === 'loaded') {
+        console.log('スクリプトは既に読み込まれているようです');
+        // 少し待ってからライブラリが利用可能か確認
+        setTimeout(() => {
+          if (window.google?.accounts?.oauth2) {
+            console.log('✅ Google Identity Servicesライブラリが利用可能です');
+            resolve();
+          } else {
+            // まだ利用可能でない場合、待機を続ける
+            waitForLibrary();
+          }
+        }, 500);
+      } else {
+        // スクリプトがまだ読み込まれていない場合
+        existingScript.onload = () => {
+          console.log('スクリプトのonloadイベントが発火しました');
+          waitForLibrary();
+        };
+        existingScript.onerror = () => {
+          console.error('スクリプトの読み込みエラーが発生しました');
+          reject(new Error('Google Identity Servicesスクリプトの読み込みに失敗しました'));
+        };
+        waitForLibrary();
+      }
+      
+      function waitForLibrary() {
+        let attempts = 0;
+        const maxAttempts = 200; // 20秒に延長
+        
+        const checkInterval = setInterval(() => {
+          attempts++;
+          if (attempts % 20 === 0) {
+            console.log(`Googleライブラリ確認中... (${attempts}/${maxAttempts})`);
+          }
+          
+          if (window.google?.accounts?.oauth2) {
+            clearInterval(checkInterval);
+            console.log('✅ Google Identity Servicesライブラリが読み込まれました');
+            resolve();
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            console.error('❌ Google Identity Servicesライブラリの読み込みがタイムアウトしました');
+            console.error('window.google:', window.google);
+            reject(new Error('Google Identity Servicesライブラリの読み込みがタイムアウトしました。ページをリロードしてください。'));
+          }
+        }, 100);
+      }
       return;
     }
 
