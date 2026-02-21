@@ -10,7 +10,7 @@ declare global {
           initTokenClient: (config: {
             client_id: string;
             scope: string;
-            callback: (response: { access_token: string }) => void;
+            callback: (response: { access_token?: string; error?: string; error_description?: string }) => void;
           }) => {
             requestAccessToken: () => void;
           };
@@ -28,40 +28,109 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
  */
 export function initializeGoogleAuth(): Promise<string> {
   return new Promise((resolve, reject) => {
+    console.log('=== Google認証開始 ===');
+    console.log('Client ID:', GOOGLE_CLIENT_ID ? `${GOOGLE_CLIENT_ID.substring(0, 20)}...` : 'not set');
+    
     if (!GOOGLE_CLIENT_ID) {
+      console.error('Google Client ID is not configured');
       reject(new Error('Google Client ID is not configured'));
       return;
     }
 
     // Google Identity Servicesライブラリが読み込まれるまで待つ
+    let attempts = 0;
+    const maxAttempts = 150; // 15秒（100ms × 150回）に延長
+    
+    // スクリプトが読み込まれているか確認
+    const scriptTag = document.querySelector('script[src*="accounts.google.com/gsi/client"]');
+    if (!scriptTag) {
+      console.error('Google Identity Servicesスクリプトタグが見つかりません');
+      reject(new Error('Google Identity Servicesスクリプトが読み込まれていません。ページをリロードしてください。'));
+      return;
+    }
+    
+    console.log('Google Identity Servicesスクリプトタグを確認しました');
+    
     const checkGoogle = setInterval(() => {
+      attempts++;
+      
+      // 10回ごとにログを出力（ログが多すぎないように）
+      if (attempts % 10 === 0) {
+        console.log(`Googleライブラリ確認中... (${attempts}/${maxAttempts})`);
+      }
+      
       if (window.google?.accounts?.oauth2) {
+        console.log('✅ Google Identity Servicesライブラリが見つかりました');
         clearInterval(checkGoogle);
         
-        const client = window.google.accounts.oauth2.initTokenClient({
-          client_id: GOOGLE_CLIENT_ID,
-          scope: 'https://www.googleapis.com/auth/calendar',
-          callback: (response) => {
-            if (response.access_token) {
-              // アクセストークンをlocalStorageに保存
-              localStorage.setItem('google_access_token', response.access_token);
-              resolve(response.access_token);
-            } else {
-              reject(new Error('Failed to get access token'));
-            }
-          },
-        });
+        try {
+          const client = window.google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: 'https://www.googleapis.com/auth/calendar',
+            callback: (response) => {
+              console.log('OAuth callback received:', JSON.stringify(response, null, 2));
+              
+              if (response.access_token) {
+                // アクセストークンをlocalStorageに保存
+                localStorage.setItem('google_access_token', response.access_token);
+                console.log('✅ アクセストークンを保存しました');
+                resolve(response.access_token);
+              } else if (response.error) {
+                // エラーが発生した場合
+                const errorCode = response.error;
+                const errorMessage = response.error_description || response.error;
+                console.error('❌ Google OAuth error:', {
+                  error: errorCode,
+                  description: errorMessage,
+                  fullResponse: response
+                });
+                
+                // エラーコードに応じた詳細なメッセージ
+                let detailedError = `エラーコード: ${errorCode}\n`;
+                if (errorMessage) {
+                  detailedError += `詳細: ${errorMessage}\n\n`;
+                }
+                
+                if (errorCode === 'popup_closed_by_user') {
+                  detailedError += 'ポップアップが閉じられました。再度お試しください。';
+                } else if (errorCode === 'access_denied') {
+                  detailedError += 'アクセスが拒否されました。\n\n';
+                  detailedError += 'OAuth同意画面が「テスト」モードの場合、あなたのメールアドレス（levo.shoon511@gmail.com）を「テストユーザー」に追加してください。\n';
+                  detailedError += 'Google Cloud Console → OAuth同意画面 → テストユーザー';
+                } else if (errorCode === 'redirect_uri_mismatch') {
+                  detailedError += 'リダイレクトURIが一致しません。\n\n';
+                  detailedError += `現在のURL: ${window.location.origin}\n\n`;
+                  detailedError += 'Google Cloud Consoleで以下を設定してください:\n';
+                  detailedError += '1. 「承認済みのJavaScript生成元」に追加:\n';
+                  detailedError += `   - ${window.location.origin}\n`;
+                  detailedError += '2. OAuth 2.0 クライアントIDを確認';
+                } else {
+                  detailedError += '認証に失敗しました。ブラウザのコンソールで詳細を確認してください。';
+                }
+                
+                reject(new Error(detailedError));
+              } else {
+                console.error('❌ アクセストークンが取得できませんでした。レスポンス:', response);
+                reject(new Error('アクセストークンの取得に失敗しました。レスポンスにaccess_tokenが含まれていません。'));
+              }
+            },
+          });
 
-        // アクセストークンをリクエスト
-        client.requestAccessToken();
+          console.log('アクセストークンをリクエストします...');
+          // アクセストークンをリクエスト
+          client.requestAccessToken();
+        } catch (error) {
+          console.error('Token client initialization error:', error);
+          reject(new Error(`認証クライアントの初期化に失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`));
+        }
+      } else if (attempts >= maxAttempts) {
+        clearInterval(checkGoogle);
+        console.error('❌ Google Identity Servicesライブラリの読み込みがタイムアウトしました');
+        console.error('スクリプトタグ:', scriptTag);
+        console.error('window.google:', window.google);
+        reject(new Error('Google Identity Servicesライブラリの読み込みに失敗しました。\n\n【解決方法】\n1. ページをリロード（F5キー）してください\n2. ネットワーク接続を確認してください\n3. 広告ブロッカーやセキュリティソフトがGoogleのスクリプトをブロックしていないか確認してください'));
       }
     }, 100);
-
-    // タイムアウト（10秒）
-    setTimeout(() => {
-      clearInterval(checkGoogle);
-      reject(new Error('Google Identity Services library failed to load'));
-    }, 10000);
   });
 }
 
@@ -93,4 +162,31 @@ export async function validateAccessToken(accessToken: string): Promise<boolean>
   } catch {
     return false;
   }
+}
+
+/**
+ * Google認証の設定を確認
+ */
+export function checkGoogleAuthConfig(): {
+  clientIdConfigured: boolean;
+  clientId: string;
+  currentOrigin: string;
+  googleLibraryLoaded: boolean;
+} {
+  const clientId = GOOGLE_CLIENT_ID;
+  const currentOrigin = window.location.origin;
+  const googleLibraryLoaded = !!window.google?.accounts?.oauth2;
+
+  console.log('=== Google認証設定確認 ===');
+  console.log('Client ID設定:', clientId ? '✅ 設定済み' : '❌ 未設定');
+  console.log('Client ID:', clientId ? `${clientId.substring(0, 30)}...` : 'なし');
+  console.log('現在のOrigin:', currentOrigin);
+  console.log('Googleライブラリ:', googleLibraryLoaded ? '✅ 読み込み済み' : '❌ 未読み込み');
+
+  return {
+    clientIdConfigured: !!clientId,
+    clientId: clientId || '',
+    currentOrigin,
+    googleLibraryLoaded,
+  };
 }

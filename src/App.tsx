@@ -5,7 +5,7 @@ import TodoList, { FilterButtons } from './components/TodoList';
 import { supabase } from './lib/supabase';
 import type { Todo } from './types/database';
 import { addTodoToGoogleCalendar, addTodoToGoogleCalendarAPI } from './lib/googleCalendar';
-import { initializeGoogleAuth, getStoredAccessToken, clearAccessToken, validateAccessToken } from './lib/googleAuth';
+import { initializeGoogleAuth, getStoredAccessToken, clearAccessToken, validateAccessToken, checkGoogleAuthConfig } from './lib/googleAuth';
 
 function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -41,16 +41,73 @@ function App() {
 
   // Google認証を開始
   const handleGoogleAuth = async () => {
+    console.log('=== Google認証ボタンがクリックされました ===');
+    console.log('Current URL:', window.location.href);
+    console.log('Origin:', window.location.origin);
+    
+    // 設定を確認
+    const config = checkGoogleAuthConfig();
+    
+    if (!config.clientIdConfigured) {
+      alert('❌ Google Client IDが設定されていません。\n\nVercelの環境変数に「VITE_GOOGLE_CLIENT_ID」が設定されているか確認してください。');
+      return;
+    }
+    
     setIsAuthenticating(true);
     try {
+      console.log('認証処理を開始します...');
       await initializeGoogleAuth();
+      console.log('✅ 認証が成功しました');
       setIsGoogleAuthenticated(true);
-      alert('Googleカレンダーへの連携が完了しました！');
+      alert('✅ Googleカレンダーへの連携が完了しました！\n\nこれで、新しいTODOを追加すると自動的にGoogleカレンダーにイベントが追加されます。');
     } catch (error) {
-      console.error('Google認証エラー:', error);
-      alert('Google認証に失敗しました。もう一度お試しください。');
+      console.error('❌ Google認証エラー:', error);
+      const errorMessage = error instanceof Error ? error.message : '不明なエラー';
+      
+      // エラーメッセージに基づいて詳細な説明を追加
+      let userMessage = '❌ Google認証に失敗しました\n\n';
+      userMessage += `エラー: ${errorMessage}\n\n`;
+      
+      if (errorMessage.includes('redirect_uri_mismatch')) {
+        userMessage += '【解決方法】\n';
+        userMessage += 'Google Cloud Consoleで以下を設定してください:\n\n';
+        userMessage += '1. 「承認済みのJavaScript生成元」に追加:\n';
+        userMessage += `   ${config.currentOrigin}\n\n`;
+        userMessage += '2. OAuth 2.0 クライアントIDを確認:\n';
+        userMessage += `   ${config.clientId.substring(0, 30)}...\n\n`;
+        userMessage += '設定後、数分待ってから再度お試しください。';
+      } else if (errorMessage.includes('access_denied')) {
+        userMessage += '【解決方法】\n';
+        userMessage += 'OAuth同意画面が「テスト」モードの場合、以下を設定してください:\n\n';
+        userMessage += '1. Google Cloud Console → OAuth同意画面\n';
+        userMessage += '2. 「テストユーザー」セクションに以下を追加:\n';
+        userMessage += '   levo.shoon511@gmail.com\n\n';
+        userMessage += 'または、公開ステータスを「本番」に変更してください。';
+      } else if (errorMessage.includes('Client ID is not configured')) {
+        userMessage += '【解決方法】\n';
+        userMessage += 'Vercelの環境変数に「VITE_GOOGLE_CLIENT_ID」が設定されているか確認してください。\n';
+        userMessage += '設定後、Vercelで再デプロイが必要です。';
+      } else if (errorMessage.includes('failed to load')) {
+        userMessage += '【解決方法】\n';
+        userMessage += 'Google Identity Servicesライブラリの読み込みに失敗しました。\n';
+        userMessage += 'ページをリロード（F5キー）して再度お試しください。';
+      } else if (errorMessage.includes('popup_closed_by_user')) {
+        userMessage += '【解決方法】\n';
+        userMessage += '認証ポップアップが閉じられました。\n';
+        userMessage += '再度「Googleカレンダー連携」ボタンをクリックしてください。';
+      } else {
+        userMessage += '【確認事項】\n';
+        userMessage += '1. ブラウザのコンソール（F12キー）で詳細なエラー情報を確認\n';
+        userMessage += '2. Google Cloud Consoleの設定を確認\n';
+        userMessage += '3. ポップアップブロッカーが無効になっているか確認\n';
+        userMessage += `4. 現在のURL: ${config.currentOrigin}\n`;
+        userMessage += `5. Client ID: ${config.clientId.substring(0, 30)}...`;
+      }
+      
+      alert(userMessage);
     } finally {
       setIsAuthenticating(false);
+      console.log('認証処理が完了しました');
     }
   };
 
